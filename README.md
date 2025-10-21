@@ -22,7 +22,6 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   "dwainm/tmux-commander.nvim",
-  opts = {}, -- uses default config
   keys = {
     -- Window commands - runs in separate tmux windows
     { "<leader>rd", function() require("tmux-commander").run_prompt("kamal deploy") end, desc = "Deploy with Kamal" },

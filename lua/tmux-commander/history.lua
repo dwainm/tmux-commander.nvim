@@ -31,9 +31,15 @@ end
 
 -- Save history to file
 function M.save()
+  -- Initialize if not set up
+  if not M.history_file then
+    M.history_file = vim.fn.stdpath("data") .. "/tmux-commander-history.json"
+  end
+
   -- Limit to max_entries
-  if #M.history > M.config.max_entries then
-    local start = #M.history - M.config.max_entries + 1
+  local max_entries = (M.config and M.config.max_entries) or 100
+  if #M.history > max_entries then
+    local start = #M.history - max_entries + 1
     M.history = { unpack(M.history, start) }
   end
 
