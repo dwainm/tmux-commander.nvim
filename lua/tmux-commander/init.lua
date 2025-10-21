@@ -13,6 +13,7 @@ M.config = {
     enabled = true,
     max_entries = 100,
   },
+  target_session = "", -- Set to specific session name, or "" for current
 }
 
 -- Ensure plugin is initialized
@@ -102,6 +103,17 @@ function M.list_windows()
   ensure_init()
   local picker = require("tmux-commander.picker")
   picker.show_windows()
+end
+
+-- Debug: show raw window data
+function M.debug_windows()
+  ensure_init()
+  local tmux = require("tmux-commander.tmux")
+  local windows = tmux.list_windows()
+  vim.notify("Found " .. #windows .. " windows", vim.log.levels.INFO)
+  for _, win in ipairs(windows) do
+    print(string.format("[%d] %s - %s (active: %s)", win.id, win.name, win.command, win.active))
+  end
 end
 
 -- Adopt existing window/pane with running command
