@@ -13,7 +13,6 @@ M.config = {
     enabled = true,
     max_entries = 100,
   },
-  commands = {}, -- Simple key-value: { deploy = "kamal deploy" }
 }
 
 -- Setup function called by lazy.nvim
@@ -22,29 +21,22 @@ function M.setup(opts)
 
   -- Load submodules
   local history = require("tmux-runner.history")
-  local commands = require("tmux-runner.commands")
 
   -- Initialize history
   history.init(M.config.history)
-
-  -- Store commands
-  commands.set_commands(M.config.commands)
 end
 
 -- Public API functions
 
--- Run a named command from config
-function M.run(name)
-  local commands = require("tmux-runner.commands")
-  commands.run(name, M.config)
-end
+-- Run a command (prompts if no command provided)
+function M.run_prompt(cmd)
+  if not cmd or cmd == "" then
+    cmd = vim.fn.input("Command: ")
+  end
 
--- Prompt for command and run
-function M.run_prompt()
-  local cmd = vim.fn.input("Command: ")
   if cmd and cmd ~= "" then
     local commands = require("tmux-runner.commands")
-    commands.run_custom(cmd, M.config)
+    commands.run(cmd, M.config)
   end
 end
 
