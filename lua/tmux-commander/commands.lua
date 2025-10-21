@@ -73,4 +73,50 @@ function M.repeat_last(config)
   M.run(M.last_command, config)
 end
 
+-- Adopt an existing window into management
+function M.adopt_window(window_index, config)
+  local window = require("tmux-commander.window")
+  local monitor = require("tmux-commander.monitor")
+
+  -- Get current command running in window
+  local current_cmd = window.get_window_command(window_index)
+  if not current_cmd then
+    vim.notify("Failed to get window command", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Check if it's an idle shell
+  if window.is_idle_shell(current_cmd, config.idle_shells) then
+    vim.notify("Window " .. window_index .. " is idle (no command to adopt)", vim.log.levels.WARN)
+    return
+  end
+
+  -- Start monitoring the window
+  monitor.start_window(window_index, current_cmd, config)
+  vim.notify("Adopted window " .. window_index .. " running: " .. current_cmd, vim.log.levels.INFO)
+end
+
+-- Adopt an existing pane into management
+function M.adopt_pane(pane_index, config)
+  local pane = require("tmux-commander.pane")
+  local monitor = require("tmux-commander.monitor")
+
+  -- Get current command running in pane
+  local current_cmd = pane.get_pane_command(pane_index)
+  if not current_cmd then
+    vim.notify("Failed to get pane command", vim.log.levels.ERROR)
+    return
+  end
+
+  -- Check if it's an idle shell
+  if pane.is_idle_shell(current_cmd, config.idle_shells) then
+    vim.notify("Pane " .. pane_index .. " is idle (no command to adopt)", vim.log.levels.WARN)
+    return
+  end
+
+  -- Start monitoring the pane
+  monitor.start_pane(pane_index, current_cmd, config)
+  vim.notify("Adopted pane " .. pane_index .. " running: " .. current_cmd, vim.log.levels.INFO)
+end
+
 return M

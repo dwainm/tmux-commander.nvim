@@ -39,6 +39,7 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
     { "<leader>pc", function() require("tmux-commander").run_panel_prompt() end, desc = "Run custom command in pane" },
 
     -- Built-in utilities
+    { "<leader>ra", function() require("tmux-commander").adopt() end, desc = "Adopt running command" },
     { "<leader>rh", function() require("tmux-commander").show_history() end, desc = "Command history" },
     { "<leader>rr", function() require("tmux-commander").repeat_last() end, desc = "Repeat last command" },
     { "<leader>ri", function() require("tmux-commander").inspect() end, desc = "Jump to runner window" },
@@ -154,6 +155,8 @@ end)
 
 ### Utility Functions
 
+**`adopt()`** - Adopt existing tmux windows/panes with running commands into plugin management. Shows picker with all running commands, select to start monitoring and get completion notifications.
+
 **`show_history()`** - Show command history in snacks picker, select to re-run
 
 **`repeat_last()`** - Re-run the last executed command
@@ -206,6 +209,17 @@ Commands are saved to `~/.local/share/nvim/tmux-commander-history.json`:
 ```
 
 ## 💡 Tips
+
+**Adopt existing commands to get notifications:**
+
+Already have commands running in tmux? Use `<leader>ra` to adopt them! The plugin will start monitoring and notify you when they complete.
+
+```lua
+-- Press <leader>ra to see all running commands
+-- Select one to start monitoring
+-- Get notified when it finishes!
+{ "<leader>ra", function() require("tmux-commander").adopt() end }
+```
 
 **Keep dev servers in panes, tests in windows:**
 

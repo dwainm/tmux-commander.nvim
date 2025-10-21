@@ -104,4 +104,11 @@ function M.list_windows()
   picker.show_windows()
 end
 
+-- Adopt existing window/pane with running command
+function M.adopt()
+  ensure_init()
+  local picker = require("tmux-commander.picker")
+  picker.show_adopt()
+end
+
 return M
