@@ -10,8 +10,9 @@ https://github.com/dwainm/tmux-commander.nvim
 
 - 🎯 **Smart Window Selection** - automatically finds idle tmux windows or creates new ones
 - 🔔 **Completion Notifications** - get notified when long-running commands finish (success/failure)
-- 📜 **Command History** - persistent history with picker UI to re-run commands
-- 🔍 **Live Preview** - browse tmux windows with live content preview in picker
+- 📜 **Command History** - persistent history with Snacks.nvim picker to re-run commands
+- 🔍 **Live Window Preview** - browse all tmux windows with real-time content preview
+- 🤖 **Auto-Adopt Commands** - automatically monitor all running tmux commands with one keypress
 - ⌨️ **Simple API** - just one function: `run_prompt(cmd)` - pass command or prompt user
 - 🎨 **Customizable** - define your own keymaps, configure notifications and behavior
 - 💬 **Interactive Support** - handles commands requiring user input (consoles, prompts, etc.)
@@ -86,6 +87,7 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
     notification = true,
     monitor_interval = 2000,  -- Check command status every 2 seconds
     idle_shells = { "zsh", "bash", "sh", "fish" },  -- What counts as idle
+    target_session = "",  -- Target specific tmux session, or "" for current session
 
     notify_on = {
       start = true,   -- "🚀 Command started in window 2"
@@ -155,9 +157,9 @@ end)
 
 ### Utility Functions
 
-**`adopt()`** - Adopt existing tmux windows/panes with running commands into plugin management. Shows picker with all running commands, select to start monitoring and get completion notifications.
+**`adopt()`** - Automatically adopt all running tmux commands in the current session for monitoring. Scans all windows, adopts non-idle commands, and shows a summary notification. Already monitored and idle windows are skipped.
 
-**`show_history()`** - Show command history in snacks picker, select to re-run
+**`show_history()`** - Show command history in Snacks.nvim picker with formatted entries (✓/✗ status icons, timestamps). Select an entry to re-run that command.
 
 **`repeat_last()`** - Re-run the last executed command
 
@@ -165,7 +167,7 @@ end)
 
 **`kill()`** - Send Ctrl-C to running command and kill it
 
-**`list_windows()`** - Show all tmux windows in picker with live preview, select to focus
+**`list_windows()`** - Show all tmux windows in Snacks.nvim picker with **live content preview**. Browse windows, preview their output in real-time, and press Enter to switch to the selected window.
 
 ## 🎯 How It Works
 
@@ -212,13 +214,13 @@ Commands are saved to `~/.local/share/nvim/tmux-commander-history.json`:
 
 **Adopt existing commands to get notifications:**
 
-Already have commands running in tmux? Use `<leader>ra` to adopt them! The plugin will start monitoring and notify you when they complete.
+Already have commands running in tmux? Use `adopt()` to automatically monitor them all! The plugin will scan all windows, adopt running commands, and notify you when they complete.
 
 ```lua
--- Press <leader>ra to see all running commands
--- Select one to start monitoring
--- Get notified when it finishes!
-{ "<leader>ra", function() require("tmux-commander").adopt() end }
+-- Press <leader>ta to adopt all running commands
+-- Shows: "✓ Adopted 2 windows, 3 idle, 1 already monitored"
+-- Get notified when they finish!
+{ "<leader>ta", function() require("tmux-commander").adopt() end }
 ```
 
 **Keep dev servers in panes, tests in windows:**
@@ -260,10 +262,15 @@ vim.api.nvim_create_autocmd("FileType", {
 
 ## 🚧 Status
 
-This plugin is in active development. Current limitations:
+This plugin is in active development. Recent improvements:
+
+- ✅ **Snacks.nvim integration** - Full picker support with live window previews
+- ✅ **Auto-adopt** - Automatically monitor all running commands
+- ✅ **Live preview** - Real-time tmux window content in picker
+
+Current limitations:
 
 - Exit code detection assumes success (monitors shell return, not actual exit code)
-- History viewer is basic (TODO: add telescope/fzf integration)
 - Single runner window per session (TODO: support multiple runners)
 
 See [SPEC.md](./SPEC.md) for planned features and detailed specification.
