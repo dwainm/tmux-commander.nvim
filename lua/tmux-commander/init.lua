@@ -14,6 +14,20 @@ M.config = {
     max_entries = 100,
   },
   target_session = "", -- Set to specific session name, or "" for current
+  input_prompt = {
+    enabled = true,
+    patterns = {
+      { pattern = "password:", password = true },
+      { pattern = "passphrase:", password = true },
+      { pattern = "Password:", password = true },
+      { pattern = "Passphrase:", password = true },
+      { pattern = "%[y/n%]", password = false },
+      { pattern = "%[Y/n%]", password = false },
+      { pattern = "continue%?", password = false },
+      { pattern = "Continue%?", password = false },
+      { pattern = "Are you sure", password = false },
+    },
+  },
 }
 
 -- Ensure plugin is initialized
