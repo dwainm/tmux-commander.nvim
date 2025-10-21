@@ -10,7 +10,8 @@ https://github.com/dwainm/tmux-commander.nvim
 
 - 🎯 **Smart Window Selection** - automatically finds idle tmux windows or creates new ones
 - 🔔 **Completion Notifications** - get notified when long-running commands finish (success/failure)
-- 📜 **Command History** - persistent history with quick access to previously run commands
+- 📜 **Command History** - persistent history with picker UI to re-run commands
+- 🔍 **Live Preview** - browse tmux windows with live content preview in picker
 - ⌨️ **Simple API** - just one function: `run_prompt(cmd)` - pass command or prompt user
 - 🎨 **Customizable** - define your own keymaps, configure notifications and behavior
 - 💬 **Interactive Support** - handles commands requiring user input (consoles, prompts, etc.)
@@ -22,6 +23,9 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   "dwainm/tmux-commander.nvim",
+  dependencies = {
+    "folke/snacks.nvim", -- for picker UI
+  },
   keys = {
     -- Window commands - runs in separate tmux windows
     { "<leader>rd", function() require("tmux-commander").run_prompt("kamal deploy") end, desc = "Deploy with Kamal" },
@@ -48,6 +52,7 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 - Neovim >= 0.9.0
 - tmux >= 3.0
+- [snacks.nvim](https://github.com/folke/snacks.nvim) - for picker UI with tmux preview
 - [nvim-notify](https://github.com/rcarriga/nvim-notify) or [noice.nvim](https://github.com/folke/noice.nvim) (recommended for notifications)
 
 ## 🎬 Quick Start
@@ -149,7 +154,7 @@ end)
 
 ### Utility Functions
 
-**`show_history()`** - Show command history (TODO: add telescope/fzf picker)
+**`show_history()`** - Show command history in snacks picker, select to re-run
 
 **`repeat_last()`** - Re-run the last executed command
 
@@ -157,7 +162,7 @@ end)
 
 **`kill()`** - Send Ctrl-C to running command and kill it
 
-**`list_windows()`** - Show all tmux windows
+**`list_windows()`** - Show all tmux windows in picker with live preview, select to focus
 
 ## 🎯 How It Works
 

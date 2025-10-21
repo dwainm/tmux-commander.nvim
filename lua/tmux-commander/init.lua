@@ -62,16 +62,8 @@ end
 -- Show command history
 function M.show_history()
   ensure_init()
-  local history = require("tmux-commander.history")
-  local entries = history.get()
-
-  if #entries == 0 then
-    vim.notify("No command history", vim.log.levels.INFO)
-    return
-  end
-
-  -- TODO: Add telescope/fzf picker
-  vim.notify(string.format("Command history has %d entries", #entries), vim.log.levels.INFO)
+  local picker = require("tmux-commander.picker")
+  picker.show_history()
 end
 
 -- Repeat last command
@@ -108,20 +100,8 @@ end
 -- List all tmux windows
 function M.list_windows()
   ensure_init()
-  local window = require("tmux-commander.window")
-  local windows, err = window.list_windows()
-
-  if not windows then
-    vim.notify("Failed to list windows: " .. (err or "unknown error"), vim.log.levels.ERROR)
-    return
-  end
-
-  local lines = {}
-  for _, win in ipairs(windows) do
-    table.insert(lines, string.format("Window %d: %s", win.index, win.command))
-  end
-
-  vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
+  local picker = require("tmux-commander.picker")
+  picker.show_windows()
 end
 
 return M
