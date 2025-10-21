@@ -1,12 +1,12 @@
 local M = {}
 
-M.active_monitors = {}
+M.active_monitors = {} -- window monitors
+M.active_pane_monitors = {} -- pane monitors
 
--- Start monitoring a command
-function M.start(window_index, cmd, config)
+-- Start monitoring a command in a window
+function M.start_window(window_index, cmd, config)
   local start_time = vim.loop.now()
   local window = require("tmux-commander.window")
-  local history = require("tmux-commander.history")
 
   -- Notification on start
   if config.notify_on.start then
@@ -30,14 +30,47 @@ function M.start(window_index, cmd, config)
       -- Check if back to idle shell
       if current_cmd and window.is_idle_shell(current_cmd, config.idle_shells) then
         -- Command finished
-        M.stop(window_index, config)
+        M.stop_window(window_index, config)
       end
     end)
   )
 end
 
--- Stop monitoring
-function M.stop(window_index, config)
+-- Start monitoring a command in a pane
+function M.start_pane(pane_index, cmd, config)
+  local start_time = vim.loop.now()
+  local pane = require("tmux-commander.pane")
+
+  -- Notification on start
+  if config.notify_on.start then
+    vim.notify(string.format("🚀 %s started in pane %d", cmd, pane_index), vim.log.levels.INFO)
+  end
+
+  -- Create timer to check status
+  local timer = vim.loop.new_timer()
+  M.active_pane_monitors[pane_index] = {
+    timer = timer,
+    cmd = cmd,
+    start_time = start_time,
+  }
+
+  timer:start(
+    config.monitor_interval,
+    config.monitor_interval,
+    vim.schedule_wrap(function()
+      local current_cmd = pane.get_pane_command(pane_index)
+
+      -- Check if back to idle shell
+      if current_cmd and pane.is_idle_shell(current_cmd, config.idle_shells) then
+        -- Command finished
+        M.stop_pane(pane_index, config)
+      end
+    end)
+  )
+end
+
+-- Stop monitoring a window
+function M.stop_window(window_index, config)
   local monitor = M.active_monitors[window_index]
   if not monitor then
     return
@@ -71,10 +104,45 @@ function M.stop(window_index, config)
   M.active_monitors[window_index] = nil
 end
 
--- Kill running command
+-- Stop monitoring a pane
+function M.stop_pane(pane_index, config)
+  local monitor = M.active_pane_monitors[pane_index]
+  if not monitor then
+    return
+  end
+
+  -- Stop timer
+  monitor.timer:stop()
+  monitor.timer:close()
+
+  -- Calculate duration
+  local duration = math.floor((vim.loop.now() - monitor.start_time) / 1000)
+
+  -- For now, assume success (we'll add exit code detection later)
+  local exit_code = 0
+  local history = require("tmux-commander.history")
+  history.add(monitor.cmd, pane_index, exit_code, duration)
+
+  -- Notification on completion
+  if config.notify_on.success and exit_code == 0 then
+    vim.notify(
+      string.format("✅ %s completed (%ds)", monitor.cmd, duration),
+      vim.log.levels.INFO
+    )
+  elseif config.notify_on.failure and exit_code ~= 0 then
+    vim.notify(
+      string.format("❌ %s failed (exit code %d)", monitor.cmd, exit_code),
+      vim.log.levels.ERROR
+    )
+  end
+
+  M.active_pane_monitors[pane_index] = nil
+end
+
+-- Kill running command in window
 function M.kill(window_index)
   vim.fn.system(string.format("tmux send-keys -t :%d C-c", window_index))
-  M.stop(window_index, require("tmux-commander").config)
+  M.stop_window(window_index, require("tmux-commander").config)
 end
 
 return M

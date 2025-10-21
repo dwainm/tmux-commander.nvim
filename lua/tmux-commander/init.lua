@@ -28,7 +28,7 @@ end
 
 -- Public API functions
 
--- Run a command (prompts if no command provided)
+-- Run a command in a window (prompts if no command provided)
 function M.run_prompt(cmd)
   if not cmd or cmd == "" then
     cmd = vim.fn.input("Command: ")
@@ -37,6 +37,18 @@ function M.run_prompt(cmd)
   if cmd and cmd ~= "" then
     local commands = require("tmux-commander.commands")
     commands.run(cmd, M.config)
+  end
+end
+
+-- Run a command in a pane (prompts if no command provided)
+function M.run_panel_prompt(cmd)
+  if not cmd or cmd == "" then
+    cmd = vim.fn.input("Command: ")
+  end
+
+  if cmd and cmd ~= "" then
+    local commands = require("tmux-commander.commands")
+    commands.run_panel(cmd, M.config)
   end
 end
 

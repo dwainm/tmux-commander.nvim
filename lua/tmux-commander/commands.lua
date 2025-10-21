@@ -1,8 +1,9 @@
 local M = {}
 
 M.last_command = nil
+M.last_panel_command = nil
 
--- Execute a command
+-- Execute a command in a window
 function M.run(cmd, config)
   if not cmd or cmd == "" then
     return
@@ -26,10 +27,40 @@ function M.run(cmd, config)
   end
 
   -- Start monitoring
-  monitor.start(window_index, cmd, config)
+  monitor.start_window(window_index, cmd, config)
 
   -- Store as last command
   M.last_command = cmd
+end
+
+-- Execute a command in a pane
+function M.run_panel(cmd, config)
+  if not cmd or cmd == "" then
+    return
+  end
+
+  local pane = require("tmux-commander.pane")
+  local monitor = require("tmux-commander.monitor")
+
+  -- Find or create pane
+  local pane_index, err = pane.find_or_create_pane(config.idle_shells)
+  if not pane_index then
+    vim.notify("Failed to find pane: " .. (err or "unknown error"), vim.log.levels.ERROR)
+    return
+  end
+
+  -- Send command
+  local success, send_err = pane.send_command(pane_index, cmd)
+  if not success then
+    vim.notify("Failed to send command: " .. (send_err or "unknown error"), vim.log.levels.ERROR)
+    return
+  end
+
+  -- Start monitoring
+  monitor.start_pane(pane_index, cmd, config)
+
+  -- Store as last panel command
+  M.last_panel_command = cmd
 end
 
 -- Repeat last command

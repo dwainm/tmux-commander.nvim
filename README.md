@@ -23,13 +23,16 @@ https://github.com/dwainm/tmux-commander.nvim
 {
   "dwainm/tmux-commander.nvim",
   keys = {
-    -- Your custom commands - pass the command directly to run_prompt()
+    -- Window commands - runs in separate tmux windows
     { "<leader>rd", function() require("tmux-commander").run_prompt("kamal deploy") end, desc = "Deploy with Kamal" },
     { "<leader>rt", function() require("tmux-commander").run_prompt("bin/rails test") end, desc = "Run Rails tests" },
     { "<leader>rC", function() require("tmux-commander").run_prompt("bin/rails console") end, desc = "Rails console" },
-
-    -- Prompt for custom command
     { "<leader>rc", function() require("tmux-commander").run_prompt() end, desc = "Run custom command" },
+
+    -- Pane commands - runs in panes within current window
+    { "<leader>pd", function() require("tmux-commander").run_panel_prompt("npm run dev") end, desc = "Dev server" },
+    { "<leader>pt", function() require("tmux-commander").run_panel_prompt("npm run test:watch") end, desc = "Test watcher" },
+    { "<leader>pc", function() require("tmux-commander").run_panel_prompt() end, desc = "Run custom command in pane" },
 
     -- Built-in utilities
     { "<leader>rh", function() require("tmux-commander").show_history() end, desc = "Command history" },
@@ -99,26 +102,50 @@ https://github.com/dwainm/tmux-commander.nvim
 
 ## 🔥 API
 
-### Core Function
+### Core Functions
 
 **`run_prompt(cmd?)`**
 
-The main (and only) function you need. It runs a command in a tmux window.
+Runs a command in a tmux **window** (creates new windows as needed).
 
 - **With command:** `run_prompt("bin/rails test")` - runs the command directly
 - **Without command:** `run_prompt()` - prompts user for input
 
 ```lua
--- Direct command execution
+-- Direct command execution in a window
 vim.keymap.set("n", "<leader>rd", function()
   require("tmux-commander").run_prompt("kamal deploy")
 end)
 
--- Prompt for command
+-- Prompt for command in a window
 vim.keymap.set("n", "<leader>rc", function()
   require("tmux-commander").run_prompt()
 end)
 ```
+
+**`run_panel_prompt(cmd?)`**
+
+Runs a command in a tmux **pane** within the current window (splits panes as needed).
+
+- **With command:** `run_panel_prompt("npm run dev")` - runs the command directly
+- **Without command:** `run_panel_prompt()` - prompts user for input
+
+```lua
+-- Direct command execution in a pane
+vim.keymap.set("n", "<leader>pd", function()
+  require("tmux-commander").run_panel_prompt("npm run dev")
+end)
+
+-- Prompt for command in a pane
+vim.keymap.set("n", "<leader>pc", function()
+  require("tmux-commander").run_panel_prompt()
+end)
+```
+
+**When to use windows vs panes?**
+
+- **Windows** (`run_prompt`): For long-running tasks you want isolated (deploys, test suites)
+- **Panes** (`run_panel_prompt`): For side-by-side work in same window (dev server + logs)
 
 ### Utility Functions
 
@@ -134,12 +161,19 @@ end)
 
 ## 🎯 How It Works
 
-### Smart Window Selection
+### Smart Window Selection (`run_prompt`)
 
 1. Lists all tmux windows: `tmux list-windows`
 2. Finds first window running an idle shell (`zsh`, `bash`, `sh`, `fish`)
 3. If found → sends command to that window
 4. If not found → creates new window with `tmux new-window`
+
+### Smart Pane Selection (`run_panel_prompt`)
+
+1. Lists all tmux panes in current window: `tmux list-panes`
+2. Finds first pane running an idle shell (`zsh`, `bash`, `sh`, `fish`)
+3. If found → sends command to that pane
+4. If not found → creates new pane with `tmux split-window -h` (vertical split)
 
 ### Command Monitoring
 
@@ -168,6 +202,16 @@ Commands are saved to `~/.local/share/nvim/tmux-commander-history.json`:
 
 ## 💡 Tips
 
+**Keep dev servers in panes, tests in windows:**
+
+```lua
+-- Dev server runs in a pane (always visible alongside editor)
+{ "<leader>pd", function() require("tmux-commander").run_panel_prompt("npm run dev") end }
+
+-- Tests run in separate window (don't clutter current workspace)
+{ "<leader>rt", function() require("tmux-commander").run_prompt("npm test") end }
+```
+
 **For interactive commands** (consoles, REPLs), use `inspect()` to jump to the window:
 
 ```lua
@@ -180,7 +224,7 @@ Commands are saved to `~/.local/share/nvim/tmux-commander-history.json`:
 
 **Use with which-key** for discoverable commands:
 
-When you press `<leader>r`, which-key will show all your defined runner commands.
+When you press `<leader>r` or `<leader>p`, which-key will show all your defined runner commands.
 
 **Multiple projects?** Define different keymaps per filetype:
 
