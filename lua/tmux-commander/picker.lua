@@ -80,13 +80,13 @@ function M.show_history()
   local items = {}
   for i = #entries, 1, -1 do
     local entry = entries[i]
-    local time_ago = os.difftime(os.time(), entry.timestamp)
-    local status = entry.exit_code == 0 and "✅" or "❌"
+    local time_ago = os.difftime(os.time(), entry.timestamp or os.time())
+    local status = (entry.exit_code or 0) == 0 and "✅" or "❌"
 
     -- Format time ago
     local time_str
     if time_ago < 60 then
-      time_str = string.format("%ds ago", time_ago)
+      time_str = string.format("%ds ago", math.floor(time_ago))
     elseif time_ago < 3600 then
       time_str = string.format("%dm ago", math.floor(time_ago / 60))
     elseif time_ago < 86400 then
@@ -96,10 +96,10 @@ function M.show_history()
     end
 
     table.insert(items, {
-      cmd = entry.command,
+      cmd = entry.command or "unknown",
       status_icon = status,
       time = time_str,
-      duration = entry.duration,
+      duration = entry.duration or 0,
     })
   end
 
@@ -108,7 +108,7 @@ function M.show_history()
     prompt = "Command History",
     items = items,
     format = function(item)
-      return string.format("%s %s (%s) - %ds", item.status_icon, item.cmd, item.time, item.duration)
+      return string.format("%s %s (%s) - %ds", item.status_icon or "?", item.cmd or "unknown", item.time or "?", item.duration or 0)
     end,
     confirm = function(item)
       -- Re-run the selected command
