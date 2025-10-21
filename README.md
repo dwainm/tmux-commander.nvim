@@ -16,6 +16,7 @@ https://github.com/dwainm/tmux-commander.nvim
 - ⌨️ **Simple API** - just one function: `run_prompt(cmd)` - pass command or prompt user
 - 🎨 **Customizable** - define your own keymaps, configure notifications and behavior
 - 💬 **Interactive Support** - handles commands requiring user input (consoles, prompts, etc.)
+- 🔐 **Auto-Prompt for Input** - automatically detect and prompt for passwords, confirmations, and other user input
 
 ## 📦 Installation
 
@@ -98,6 +99,21 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
     history = {
       enabled = true,
       max_entries = 100,
+    },
+
+    input_prompt = {
+      enabled = true,  -- Auto-prompt for input when command needs it
+      patterns = {
+        { pattern = "password:", password = true },
+        { pattern = "passphrase:", password = true },
+        { pattern = "Password:", password = true },
+        { pattern = "Passphrase:", password = true },
+        { pattern = "%[y/n%]", password = false },
+        { pattern = "%[Y/n%]", password = false },
+        { pattern = "continue%?", password = false },
+        { pattern = "Continue%?", password = false },
+        { pattern = "Are you sure", password = false },
+      },
     },
   },
   keys = {
@@ -189,10 +205,35 @@ end)
 
 1. Starts async timer (checks every `monitor_interval` ms)
 2. Checks if window is back to idle shell
-3. When command finishes:
+3. Checks for input prompts (password, confirmations, etc.)
+4. When command finishes:
    - Shows completion notification
    - Saves to command history
    - Stops monitoring
+
+### Auto-Prompt for Input
+
+When a monitored command needs user input, the plugin automatically detects common patterns and prompts you in Neovim:
+
+1. During monitoring, captures the last 10 lines of the tmux pane
+2. Checks for common input patterns:
+   - `password:` / `passphrase:` (password prompts)
+   - `[y/n]` / `[Y/n]` (yes/no confirmations)
+   - `continue?` / `Are you sure` (confirmation prompts)
+3. When detected, shows `vim.ui.input()` prompt in Neovim
+4. Sends your input back to the tmux pane automatically
+5. Password patterns are marked for secure input (plugin-dependent)
+
+**Example workflow:**
+```
+1. Press <leader>rd to run "kamal deploy"
+2. Command hits password prompt in tmux
+3. Neovim shows: "Input needed in tmux window 2: password:"
+4. Type password in Neovim prompt
+5. Input sent to tmux, command continues
+```
+
+You can customize patterns or disable this feature in configuration.
 
 ### History Storage
 
@@ -233,6 +274,19 @@ Already have commands running in tmux? Use `adopt()` to automatically monitor th
 { "<leader>rt", function() require("tmux-commander").run_prompt("npm test") end }
 ```
 
+**Auto-prompt handles password and confirmation prompts automatically:**
+
+Commands that need input (passwords, confirmations) are automatically detected. Just type the input in Neovim when prompted - no need to jump to tmux!
+
+```lua
+-- The plugin will detect password prompts automatically
+{ "<leader>rd", function() require("tmux-commander").run_prompt("kamal deploy") end }
+-- When password is needed, you'll see: "Input needed in tmux window 2: password:"
+
+-- You can still manually jump to window if needed
+{ "<leader>ri", function() require("tmux-commander").inspect() end }
+```
+
 **For interactive commands** (consoles, REPLs), use `inspect()` to jump to the window:
 
 ```lua
@@ -267,6 +321,7 @@ This plugin is in active development. Recent improvements:
 - ✅ **Snacks.nvim integration** - Full picker support with live window previews
 - ✅ **Auto-adopt** - Automatically monitor all running commands
 - ✅ **Live preview** - Real-time tmux window content in picker
+- ✅ **Auto-prompt for input** - Automatically detect and prompt for passwords and confirmations
 
 Current limitations:
 
