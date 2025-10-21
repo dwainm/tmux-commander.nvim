@@ -1,4 +1,4 @@
-# tmux-runner.nvim - Plugin Specification
+# tmux-commander.nvim - Plugin Specification
 
 A Neovim plugin for smart tmux window management and command execution with notifications.
 
@@ -14,7 +14,7 @@ A Neovim plugin for smart tmux window management and command execution with noti
 
 ```lua
 {
-  "dwainm/tmux-runner.nvim",
+  "dwainm/tmux-commander.nvim",
   opts = {
     -- Default behavior
     notification = true,  -- Use vim.notify for completion
@@ -33,7 +33,7 @@ A Neovim plugin for smart tmux window management and command execution with noti
     history = {
       enabled = true,
       max_entries = 100,  -- Keep last 100 commands
-      -- Stored in vim.fn.stdpath("data") .. "/tmux-runner-history.json"
+      -- Stored in vim.fn.stdpath("data") .. "/tmux-commander-history.json"
     },
 
     -- Define your commands with keymaps
@@ -83,11 +83,11 @@ A Neovim plugin for smart tmux window management and command execution with noti
     -- <leader>rd, <leader>rt, <leader>rc, <leader>rC
 
     -- Built-in utility keymaps
-    { "<leader>rh", "<cmd>SmartRunnerHistory<cr>", desc = "Command history" },
-    { "<leader>rr", "<cmd>SmartRunnerRepeat<cr>", desc = "Repeat last command" },
-    { "<leader>ri", "<cmd>SmartRunnerInspect<cr>", desc = "Jump to runner window" },
-    { "<leader>rx", "<cmd>SmartRunnerKill<cr>", desc = "Kill running command" },
-    { "<leader>rl", "<cmd>SmartRunnerList<cr>", desc = "List runner windows" },
+    { "<leader>rh", "<cmd>TmuxCommanderHistory<cr>", desc = "Command history" },
+    { "<leader>rr", "<cmd>TmuxCommanderRepeat<cr>", desc = "Repeat last command" },
+    { "<leader>ri", "<cmd>TmuxCommanderInspect<cr>", desc = "Jump to runner window" },
+    { "<leader>rx", "<cmd>TmuxCommanderKill<cr>", desc = "Kill running command" },
+    { "<leader>rl", "<cmd>TmuxCommanderList<cr>", desc = "List runner windows" },
   },
 }
 ```
@@ -132,7 +132,7 @@ Each command can have the following options:
 ## Command History
 
 **Storage:**
-- JSON file: `vim.fn.stdpath("data") .. "/tmux-runner-history.json"`
+- JSON file: `vim.fn.stdpath("data") .. "/tmux-commander-history.json"`
 - Format:
   ```json
   [
@@ -160,19 +160,19 @@ Each command can have the following options:
 
 ## Built-in Commands
 
-### `<leader>rh` - SmartRunnerHistory
+### `<leader>rh` - TmuxCommanderHistory
 Open picker with command history. Select to re-run.
 
-### `<leader>rr` - SmartRunnerRepeat
+### `<leader>rr` - TmuxCommanderRepeat
 Re-run the last executed command (no picker).
 
-### `<leader>ri` - SmartRunnerInspect
+### `<leader>ri` - TmuxCommanderInspect
 Jump to the active runner window (for interactive commands).
 
-### `<leader>rx` - SmartRunnerKill
+### `<leader>rx` - TmuxCommanderKill
 Send Ctrl-C to running command and kill it.
 
-### `<leader>rl` - SmartRunnerList
+### `<leader>rl` - TmuxCommanderList
 Show all runner windows currently open.
 
 ## Notification Examples
@@ -221,9 +221,9 @@ Runner
 
 ### File Structure
 ```
-tmux-runner.nvim/
+tmux-commander.nvim/
 ├── lua/
-│   └── tmux-runner/
+│   └── tmux-commander/
 │       ├── init.lua          # Main plugin entry
 │       ├── window.lua         # Window selection logic
 │       ├── monitor.lua        # Command monitoring

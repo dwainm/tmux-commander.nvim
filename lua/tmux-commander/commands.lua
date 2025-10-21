@@ -8,8 +8,8 @@ function M.run(cmd, config)
     return
   end
 
-  local window = require("tmux-runner.window")
-  local monitor = require("tmux-runner.monitor")
+  local window = require("tmux-commander.window")
+  local monitor = require("tmux-commander.monitor")
 
   -- Find or create window
   local window_index, err = window.find_or_create_window(config.idle_shells)

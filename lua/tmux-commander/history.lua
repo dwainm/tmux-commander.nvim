@@ -6,7 +6,7 @@ M.history = {}
 
 function M.init(config)
   M.config = config
-  M.history_file = vim.fn.stdpath("data") .. "/tmux-runner-history.json"
+  M.history_file = vim.fn.stdpath("data") .. "/tmux-commander-history.json"
   M.load()
 end
 

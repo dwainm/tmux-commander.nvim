@@ -1,4 +1,4 @@
-# tmux-runner.nvim
+# tmux-commander.nvim
 
 Smart tmux window management and command execution for Neovim.
 
@@ -17,7 +17,7 @@ Smart tmux window management and command execution for Neovim.
 
 ```lua
 {
-  "dwainm/tmux-runner.nvim",
+  "dwainm/tmux-commander.nvim",
   opts = {
     commands = {
       {

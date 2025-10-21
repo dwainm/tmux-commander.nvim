@@ -5,8 +5,8 @@ M.active_monitors = {}
 -- Start monitoring a command
 function M.start(window_index, cmd, config)
   local start_time = vim.loop.now()
-  local window = require("tmux-runner.window")
-  local history = require("tmux-runner.history")
+  local window = require("tmux-commander.window")
+  local history = require("tmux-commander.history")
 
   -- Notification on start
   if config.notify_on.start then
@@ -52,7 +52,7 @@ function M.stop(window_index, config)
 
   -- For now, assume success (we'll add exit code detection later)
   local exit_code = 0
-  local history = require("tmux-runner.history")
+  local history = require("tmux-commander.history")
   history.add(monitor.cmd, window_index, exit_code, duration)
 
   -- Notification on completion
@@ -74,7 +74,7 @@ end
 -- Kill running command
 function M.kill(window_index)
   vim.fn.system(string.format("tmux send-keys -t :%d C-c", window_index))
-  M.stop(window_index, require("tmux-runner").config)
+  M.stop(window_index, require("tmux-commander").config)
 end
 
 return M

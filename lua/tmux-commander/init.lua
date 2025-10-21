@@ -20,7 +20,7 @@ function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
 
   -- Load submodules
-  local history = require("tmux-runner.history")
+  local history = require("tmux-commander.history")
 
   -- Initialize history
   history.init(M.config.history)
@@ -35,14 +35,14 @@ function M.run_prompt(cmd)
   end
 
   if cmd and cmd ~= "" then
-    local commands = require("tmux-runner.commands")
+    local commands = require("tmux-commander.commands")
     commands.run(cmd, M.config)
   end
 end
 
 -- Show command history
 function M.show_history()
-  local history = require("tmux-runner.history")
+  local history = require("tmux-commander.history")
   local entries = history.get()
 
   if #entries == 0 then
@@ -56,15 +56,15 @@ end
 
 -- Repeat last command
 function M.repeat_last()
-  local commands = require("tmux-runner.commands")
+  local commands = require("tmux-commander.commands")
   commands.repeat_last(M.config)
 end
 
 -- Jump to active runner window
 function M.inspect()
-  local monitor = require("tmux-runner.monitor")
+  local monitor = require("tmux-commander.monitor")
   for window_index, _ in pairs(monitor.active_monitors) do
-    local window = require("tmux-runner.window")
+    local window = require("tmux-commander.window")
     window.focus_window(window_index)
     return
   end
@@ -73,7 +73,7 @@ end
 
 -- Kill running command
 function M.kill()
-  local monitor = require("tmux-runner.monitor")
+  local monitor = require("tmux-commander.monitor")
   for window_index, _ in pairs(monitor.active_monitors) do
     monitor.kill(window_index)
     vim.notify("Killed command in window " .. window_index, vim.log.levels.INFO)
@@ -84,7 +84,7 @@ end
 
 -- List all tmux windows
 function M.list_windows()
-  local window = require("tmux-runner.window")
+  local window = require("tmux-commander.window")
   local windows, err = window.list_windows()
 
   if not windows then
