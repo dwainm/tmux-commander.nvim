@@ -40,10 +40,9 @@ function M.show_windows()
   snacks.picker.pick({
     prompt = "Tmux Windows",
     items = items,
-    format = function(item)
-      return {
-        { text = string.format("Window %d: %s", item.idx, item.cmd) }
-      }
+    format = function(item, columns)
+      local text = string.format("Window %d: %s", item.idx, item.cmd)
+      return { { text = text, width = columns } }
     end,
     preview = function(item, opts)
       -- Get tmux window content for preview
@@ -110,9 +109,7 @@ function M.show_history()
     prompt = "Command History",
     items = items,
     format = function(item)
-      return {
-        { text = string.format("%s %s (%s) - %ds", item.status_icon or "?", item.cmd or "unknown", item.time or "?", item.duration or 0) }
-      }
+      return string.format("%s %s (%s) - %ds", item.status_icon or "?", item.cmd or "unknown", item.time or "?", item.duration or 0)
     end,
     confirm = function(item)
       -- Re-run the selected command
@@ -190,9 +187,7 @@ function M.show_adopt()
     prompt = "Adopt Command",
     items = items,
     format = function(item)
-      return {
-        { text = string.format("%s %d: %s", item.type == "window" and "Window" or "Pane", item.idx, item.cmd) }
-      }
+      return string.format("%s %d: %s", item.type == "window" and "Window" or "Pane", item.idx, item.cmd)
     end,
     preview = function(item, opts)
       if item.type == "window" then
