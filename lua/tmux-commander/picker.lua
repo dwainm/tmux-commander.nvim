@@ -31,9 +31,8 @@ function M.show_windows()
   local items = {}
   for _, win in ipairs(windows) do
     table.insert(items, {
-      text = string.format("Window %d: %s", win.index, win.command),
-      index = win.index,
-      command = win.command,
+      idx = win.index,
+      cmd = win.command,
     })
   end
 
@@ -42,20 +41,20 @@ function M.show_windows()
     prompt = "Tmux Windows",
     items = items,
     format = function(item)
-      return item.text
+      return string.format("Window %d: %s", item.idx, item.cmd)
     end,
     preview = function(item, opts)
       -- Get tmux window content for preview
-      local pane_contents = vim.fn.system(string.format("tmux capture-pane -t :%d -p", item.index))
+      local pane_contents = vim.fn.system(string.format("tmux capture-pane -t :%d -p", item.idx))
       if vim.v.shell_error == 0 then
-        return pane_contents
+        return vim.split(pane_contents, "\n")
       else
-        return "Preview not available"
+        return { "Preview not available" }
       end
     end,
     confirm = function(item)
       -- Focus the selected window
-      window.focus_window(item.index)
+      window.focus_window(item.idx)
     end,
   })
 end
@@ -97,8 +96,10 @@ function M.show_history()
     end
 
     table.insert(items, {
-      text = string.format("%s %s (%s) - %ds", status, entry.command, time_str, entry.duration),
-      command = entry.command,
+      cmd = entry.command,
+      status_icon = status,
+      time = time_str,
+      duration = entry.duration,
     })
   end
 
@@ -107,13 +108,13 @@ function M.show_history()
     prompt = "Command History",
     items = items,
     format = function(item)
-      return item.text
+      return string.format("%s %s (%s) - %ds", item.status_icon, item.cmd, item.time, item.duration)
     end,
     confirm = function(item)
       -- Re-run the selected command
       local commands = require("tmux-commander.commands")
       local config = require("tmux-commander").config
-      commands.run(item.command, config)
+      commands.run(item.cmd, config)
     end,
   })
 end
