@@ -14,19 +14,21 @@ M.config = {
     max_entries = 100,
   },
   target_session = "", -- Set to specific session name, or "" for current
-  input_prompt = {
+  input_detection = {
     enabled = true,
-    patterns = {
-      { pattern = "password:", password = true },
-      { pattern = "passphrase:", password = true },
-      { pattern = "Password:", password = true },
-      { pattern = "Passphrase:", password = true },
-      { pattern = "%[y/n%]", password = false },
-      { pattern = "%[Y/n%]", password = false },
-      { pattern = "continue%?", password = false },
-      { pattern = "Continue%?", password = false },
-      { pattern = "Are you sure", password = false },
+    stability_timeout = 2000,
+    stdin_waiters = {
+      action = "notify",
+      commands = {
+        "cat", "grep", "sort", "wc", "tee", "tr",
+        "sed", "awk", "head", "tail", "less", "more",
+        "uniq", "cut", "paste"
+      }
     },
+    password_patterns = {
+      "password:",
+      "passphrase:",
+    }
   },
 }
 

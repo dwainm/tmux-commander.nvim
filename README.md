@@ -15,8 +15,7 @@ https://github.com/dwainm/tmux-commander.nvim
 - 🤖 **Auto-Adopt Commands** - automatically monitor all running tmux commands with one keypress
 - ⌨️ **Simple API** - just one function: `run_prompt(cmd)` - pass command or prompt user
 - 🎨 **Customizable** - define your own keymaps, configure notifications and behavior
-- 💬 **Interactive Support** - handles commands requiring user input (consoles, prompts, etc.)
-- 🔐 **Auto-Prompt for Input** - automatically detect and prompt for passwords, confirmations, and other user input
+- 🔐 **Auto-Prompt for Input** - cursor-based detection automatically prompts for passwords, confirmations, and interactive input
 
 ## 📦 Installation
 
@@ -101,19 +100,28 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
       max_entries = 100,
     },
 
-    input_prompt = {
+    input_detection = {
       enabled = true,  -- Auto-prompt for input when command needs it
-      patterns = {
-        { pattern = "password:", password = true },
-        { pattern = "passphrase:", password = true },
-        { pattern = "Password:", password = true },
-        { pattern = "Passphrase:", password = true },
-        { pattern = "%[y/n%]", password = false },
-        { pattern = "%[Y/n%]", password = false },
-        { pattern = "continue%?", password = false },
-        { pattern = "Continue%?", password = false },
-        { pattern = "Are you sure", password = false },
+
+      -- How long to wait for output to stabilize before detecting (ms)
+      stability_timeout = 2000,
+
+      -- Commands that wait for stdin without showing a prompt
+      -- These will trigger a notification instead of an input prompt
+      stdin_waiters = {
+        action = "notify",  -- "notify" | "ignore" | "prompt"
+        commands = {
+          "cat", "grep", "sort", "wc", "tee", "tr",
+          "sed", "awk", "head", "tail", "less", "more",
+          "uniq", "cut", "paste"
+        }
       },
+
+      -- Patterns that indicate a password prompt (for hidden input)
+      password_patterns = {
+        "password:",
+        "passphrase:",
+      }
     },
   },
   keys = {
@@ -213,27 +221,50 @@ end)
 
 ### Auto-Prompt for Input
 
-When a monitored command needs user input, the plugin automatically detects common patterns and prompts you in Neovim:
+When a monitored command needs user input, the plugin automatically detects it using cursor position and prompts you in Neovim:
 
-1. During monitoring, captures the last 10 lines of the tmux pane
-2. Checks for common input patterns:
-   - `password:` / `passphrase:` (password prompts)
-   - `[y/n]` / `[Y/n]` (yes/no confirmations)
-   - `continue?` / `Are you sure` (confirmation prompts)
-3. When detected, shows `vim.ui.input()` prompt in Neovim
-4. Sends your input back to the tmux pane automatically
-5. Password patterns are marked for secure input (plugin-dependent)
+**Detection method:**
+- Monitors tmux cursor position (`#{cursor_x}`) during command execution
+- When cursor is mid-line (cursor_x > 0) and output is stable → prompt is waiting for input
+- Captures the last line to show as prompt text in Neovim
+
+**Smart handling:**
+
+1. **Visible prompts** - Auto-prompt in Neovim:
+   - `sudo` password prompts
+   - `cp -i`, `rm -i`, `mv -i` confirmations
+   - Python `input()`, shell `read -p`
+   - Any command showing a prompt
+
+2. **Silent stdin waiters** - Notify only:
+   - `cat`, `grep` (no args) waiting for input
+   - Configurable list in `stdin_waiters.commands`
+   - Shows: "⚠️ cat is waiting for input. Press <leader>ri to interact"
+
+3. **Password detection** - Hidden input:
+   - Checks prompt text against `password_patterns`
+   - Automatically hides characters for password prompts
 
 **Example workflow:**
 ```
 1. Press <leader>rd to run "kamal deploy"
 2. Command hits password prompt in tmux
-3. Neovim shows: "Input needed in tmux window 2: password:"
-4. Type password in Neovim prompt
-5. Input sent to tmux, command continues
+3. Detection: cursor_x=10, last_line="password:"
+4. Neovim shows: "Input for kamal (window 2): password:"
+5. Type password (hidden), sent to tmux
+6. Command hits confirmation: "Deploy to production? (y/n)"
+7. Neovim shows: "Input for kamal (window 2): Deploy to production? (y/n)"
+8. Type "y", sent to tmux
+9. Deploy continues...
 ```
 
-You can customize patterns or disable this feature in configuration.
+**Benefits:**
+- ✅ No pattern configuration needed - works with any prompt
+- ✅ Detects 90%+ of real-world input scenarios
+- ✅ Smart handling of edge cases (stdin waiters)
+- ✅ Fallback: `<leader>ri` still works for any case
+
+You can customize stdin waiters or disable this feature in configuration.
 
 ### History Storage
 

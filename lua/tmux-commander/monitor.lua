@@ -33,24 +33,27 @@ function M.start_window(window_index, cmd, config)
         M.stop_window(window_index, config)
       else
         -- Check for input prompts if enabled
-        if config.input_prompt and config.input_prompt.enabled then
+        if config.input_detection and config.input_detection.enabled then
           local monitor_data = M.active_monitors[window_index]
           if monitor_data and not monitor_data.waiting_for_input then
             local input_detector = require("tmux-commander.input_detector")
-            local content = input_detector.capture_pane_content(window_index, true)
-            if content then
-              local match_info = input_detector.detect_input_prompt(content, config.input_prompt.patterns)
-              if match_info then
-                -- Mark that we're waiting for input to avoid repeated prompts
-                monitor_data.waiting_for_input = true
-                input_detector.prompt_and_send(window_index, true, match_info)
-                -- Reset flag after a delay to allow for additional prompts
-                vim.defer_fn(function()
-                  if M.active_monitors[window_index] then
-                    M.active_monitors[window_index].waiting_for_input = false
-                  end
-                end, 5000)
-              end
+            local detection = input_detector.detect_input_state(
+              window_index,
+              true,
+              config.input_detection,
+              config.idle_shells
+            )
+
+            if detection and detection.action then
+              -- Mark that we're waiting for input to avoid repeated prompts
+              monitor_data.waiting_for_input = true
+              input_detector.handle_input_state(detection)
+              -- Reset flag after a delay to allow for additional prompts
+              vim.defer_fn(function()
+                if M.active_monitors[window_index] then
+                  M.active_monitors[window_index].waiting_for_input = false
+                end
+              end, 5000)
             end
           end
         end
@@ -89,24 +92,27 @@ function M.start_pane(pane_index, cmd, config)
         M.stop_pane(pane_index, config)
       else
         -- Check for input prompts if enabled
-        if config.input_prompt and config.input_prompt.enabled then
+        if config.input_detection and config.input_detection.enabled then
           local monitor_data = M.active_pane_monitors[pane_index]
           if monitor_data and not monitor_data.waiting_for_input then
             local input_detector = require("tmux-commander.input_detector")
-            local content = input_detector.capture_pane_content(pane_index, false)
-            if content then
-              local match_info = input_detector.detect_input_prompt(content, config.input_prompt.patterns)
-              if match_info then
-                -- Mark that we're waiting for input to avoid repeated prompts
-                monitor_data.waiting_for_input = true
-                input_detector.prompt_and_send(pane_index, false, match_info)
-                -- Reset flag after a delay to allow for additional prompts
-                vim.defer_fn(function()
-                  if M.active_pane_monitors[pane_index] then
-                    M.active_pane_monitors[pane_index].waiting_for_input = false
-                  end
-                end, 5000)
-              end
+            local detection = input_detector.detect_input_state(
+              pane_index,
+              false,
+              config.input_detection,
+              config.idle_shells
+            )
+
+            if detection and detection.action then
+              -- Mark that we're waiting for input to avoid repeated prompts
+              monitor_data.waiting_for_input = true
+              input_detector.handle_input_state(detection)
+              -- Reset flag after a delay to allow for additional prompts
+              vim.defer_fn(function()
+                if M.active_pane_monitors[pane_index] then
+                  M.active_pane_monitors[pane_index].waiting_for_input = false
+                end
+              end, 5000)
             end
           end
         end

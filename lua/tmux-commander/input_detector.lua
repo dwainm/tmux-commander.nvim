@@ -1,100 +1,230 @@
 local M = {}
 
--- Capture the last few lines from a tmux pane
+-- Get cursor position for a tmux target
 -- @param target string Target identifier (window or pane)
 -- @param is_window boolean True if target is a window, false if it's a pane
--- @return string|nil Captured content or nil on error
-function M.capture_pane_content(target, is_window)
+-- @return number|nil Cursor X position or nil on error
+local function get_cursor_x(target, is_window)
   local cmd
   if is_window then
-    cmd = string.format("tmux capture-pane -t :%s -p -S -10", target)
+    cmd = string.format("tmux display-message -t :%s -p '#{cursor_x}'", target)
   else
-    cmd = string.format("tmux capture-pane -t %s -p -S -10", target)
+    cmd = string.format("tmux display-message -t %s -p '#{cursor_x}'", target)
   end
-  
+
   local result = vim.fn.system(cmd)
   if vim.v.shell_error ~= 0 then
     return nil
   end
-  
+
+  return tonumber(vim.trim(result))
+end
+
+-- Get current command for a tmux target
+-- @param target string Target identifier (window or pane)
+-- @param is_window boolean True if target is a window, false if it's a pane
+-- @return string|nil Current command or nil on error
+local function get_current_command(target, is_window)
+  local cmd
+  if is_window then
+    cmd = string.format("tmux display-message -t :%s -p '#{pane_current_command}'", target)
+  else
+    cmd = string.format("tmux display-message -t %s -p '#{pane_current_command}'", target)
+  end
+
+  local result = vim.fn.system(cmd)
+  if vim.v.shell_error ~= 0 then
+    return nil
+  end
+
   return vim.trim(result)
 end
 
--- Check if content matches any input prompt patterns
--- @param content string Content to check
--- @param patterns table List of pattern definitions with { pattern, password }
--- @return table|nil Match info { pattern, password, prompt_text } or nil
-function M.detect_input_prompt(content, patterns)
-  if not content or content == "" then
+-- Capture the last line from a tmux pane
+-- @param target string Target identifier (window or pane)
+-- @param is_window boolean True if target is a window, false if it's a pane
+-- @return string|nil Last line content or nil on error
+local function get_last_line(target, is_window)
+  local cmd
+  if is_window then
+    cmd = string.format("tmux capture-pane -t :%s -p -S -5 | tail -1", target)
+  else
+    cmd = string.format("tmux capture-pane -t %s -p -S -5 | tail -1", target)
+  end
+
+  local result = vim.fn.system(cmd)
+  if vim.v.shell_error ~= 0 then
     return nil
   end
-  
-  -- Get the last few lines (most likely to have prompts)
-  local lines = vim.split(content, "\n")
-  local last_lines = {}
-  local start_idx = math.max(1, #lines - 5)
-  for i = start_idx, #lines do
-    table.insert(last_lines, lines[i])
+
+  return vim.trim(result)
+end
+
+-- Check if a command is in the stdin waiters list
+-- @param cmd string Command name
+-- @param stdin_waiters table Configuration for stdin waiters
+-- @return boolean True if command is a known stdin waiter
+local function is_stdin_waiter(cmd, stdin_waiters)
+  if not stdin_waiters or not stdin_waiters.commands then
+    return false
   end
-  
-  -- Check each line against patterns
-  for _, line in ipairs(last_lines) do
-    for _, pattern_def in ipairs(patterns) do
-      if line:match(pattern_def.pattern) then
-        return {
-          pattern = pattern_def.pattern,
-          password = pattern_def.password,
-          prompt_text = vim.trim(line),
-        }
-      end
+
+  for _, waiter in ipairs(stdin_waiters.commands) do
+    if cmd == waiter then
+      return true
     end
   end
-  
-  return nil
+
+  return false
+end
+
+-- Check if prompt text matches password patterns
+-- @param text string Prompt text to check
+-- @param password_patterns table List of password patterns
+-- @return boolean True if matches a password pattern
+local function is_password_prompt(text, password_patterns)
+  if not text or not password_patterns then
+    return false
+  end
+
+  local lower_text = text:lower()
+  for _, pattern in ipairs(password_patterns) do
+    if lower_text:find(pattern:lower(), 1, true) then
+      return true
+    end
+  end
+
+  return false
+end
+
+-- Detect input state for a tmux target
+-- @param target string Target identifier (window or pane)
+-- @param is_window boolean True if target is a window, false if it's a pane
+-- @param config table Plugin configuration
+-- @param idle_shells table List of idle shell names
+-- @return table|nil Detection result { state, action, ... } or nil
+function M.detect_input_state(target, is_window, config, idle_shells)
+  local cursor_x = get_cursor_x(target, is_window)
+  local current_cmd = get_current_command(target, is_window)
+
+  if not cursor_x or not current_cmd then
+    return nil
+  end
+
+  -- Check if idle shell
+  local is_idle = false
+  for _, shell in ipairs(idle_shells) do
+    if current_cmd == shell then
+      is_idle = true
+      break
+    end
+  end
+
+  if is_idle then
+    return { state = "idle" }
+  end
+
+  -- Case 1: Known stdin waiter without prompt (cursor_x == 0)
+  if is_stdin_waiter(current_cmd, config.stdin_waiters) and cursor_x == 0 then
+    local action = config.stdin_waiters.action or "notify"
+    if action == "ignore" then
+      return { state = "running" }
+    end
+
+    return {
+      state = "stdin_waiting",
+      action = action,
+      cmd = current_cmd,
+      target = target,
+      is_window = is_window,
+    }
+  end
+
+  -- Case 2: Cursor mid-line - visible prompt waiting
+  if cursor_x > 0 then
+    local last_line = get_last_line(target, is_window)
+    if last_line and last_line ~= "" then
+      local is_password = is_password_prompt(last_line, config.password_patterns)
+
+      return {
+        state = "prompt_waiting",
+        action = "prompt",
+        cmd = current_cmd,
+        target = target,
+        is_window = is_window,
+        prompt_text = last_line,
+        is_password = is_password,
+      }
+    end
+  end
+
+  -- Case 3: Running normally
+  return { state = "running" }
+end
+
+-- Handle detected input state
+-- @param detection table Detection result from detect_input_state
+function M.handle_input_state(detection)
+  if not detection or not detection.action then
+    return
+  end
+
+  if detection.action == "notify" then
+    local target_type = detection.is_window and "window" or "pane"
+    vim.notify(
+      string.format("⚠️ %s is waiting for input in %s %s\nPress <leader>ri to interact",
+        detection.cmd, target_type, detection.target),
+      vim.log.levels.WARN
+    )
+  elseif detection.action == "prompt" then
+    M.prompt_and_send(detection)
+  end
 end
 
 -- Show input prompt to user and send response to tmux
--- @param target string Target identifier (window or pane)
--- @param is_window boolean True if target is a window, false if it's a pane
--- @param match_info table Match info from detect_input_prompt
-function M.prompt_and_send(target, is_window, match_info)
-  local target_type = is_window and "window" or "pane"
-  local prompt_message = string.format("Input needed in tmux %s %s: %s", target_type, target, match_info.prompt_text)
-  
+-- @param detection table Detection result with prompt information
+function M.prompt_and_send(detection)
+  local target_type = detection.is_window and "window" or "pane"
+  local prompt_message = string.format(
+    "Input for %s (%s %s): %s",
+    detection.cmd,
+    target_type,
+    detection.target,
+    detection.prompt_text
+  )
+
   -- Create input options
   local input_opts = {
     prompt = prompt_message,
   }
-  
-  -- Use secure input for passwords (Neovim 0.10+)
-  if match_info.password and vim.fn.has("nvim-0.10") == 1 then
+
+  -- Note: Password hiding depends on the input UI plugin
+  -- vim.ui.input doesn't natively support password mode
+  if detection.is_password then
     input_opts.default = ""
-    -- Note: vim.ui.input doesn't have a native password mode yet in 0.9
-    -- Users on 0.10+ can use plugins that support this
   end
-  
+
   vim.ui.input(input_opts, function(input)
     if not input then
-      -- User cancelled
       return
     end
-    
+
     -- Escape single quotes in input
     local escaped_input = input:gsub("'", "'\\''")
-    
+
     -- Send to tmux
     local send_cmd
-    if is_window then
-      send_cmd = string.format("tmux send-keys -t :%s '%s' Enter", target, escaped_input)
+    if detection.is_window then
+      send_cmd = string.format("tmux send-keys -t :%s '%s' Enter", detection.target, escaped_input)
     else
-      send_cmd = string.format("tmux send-keys -t %s '%s' Enter", target, escaped_input)
+      send_cmd = string.format("tmux send-keys -t %s '%s' Enter", detection.target, escaped_input)
     end
-    
+
     vim.fn.system(send_cmd)
-    
+
     if vim.v.shell_error ~= 0 then
       vim.notify(
-        string.format("Failed to send input to tmux %s %s", target_type, target),
+        string.format("Failed to send input to tmux %s %s", target_type, detection.target),
         vim.log.levels.ERROR
       )
     end
