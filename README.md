@@ -120,8 +120,8 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
 
       -- Patterns that indicate a password prompt (for hidden input)
       password_patterns = {
-        "password:",
-        "passphrase:",
+        "password",
+        "passphrase",
       }
     },
   },

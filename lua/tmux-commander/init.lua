@@ -27,8 +27,8 @@ M.config = {
       }
     },
     password_patterns = {
-      "password:",
-      "passphrase:",
+      "password",
+      "passphrase",
     }
   },
 }
