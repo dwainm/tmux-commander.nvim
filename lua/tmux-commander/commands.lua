@@ -19,17 +19,24 @@ function M.run(cmd, config)
     return
   end
 
+  -- Prepend cd to current working directory if configured
+  local full_cmd = cmd
+  if config.run_in_cwd then
+    local cwd = vim.fn.getcwd()
+    full_cmd = string.format("cd '%s' && %s", cwd, cmd)
+  end
+
   -- Send command
-  local success, send_err = window.send_command(window_index, cmd)
+  local success, send_err = window.send_command(window_index, full_cmd)
   if not success then
     vim.notify("Failed to send command: " .. (send_err or "unknown error"), vim.log.levels.ERROR)
     return
   end
 
-  -- Start monitoring
+  -- Start monitoring (use original cmd for display)
   monitor.start_window(window_index, cmd, config)
 
-  -- Store as last command
+  -- Store as last command (original, not with cd)
   M.last_command = cmd
 end
 
@@ -49,17 +56,24 @@ function M.run_panel(cmd, config)
     return
   end
 
+  -- Prepend cd to current working directory if configured
+  local full_cmd = cmd
+  if config.run_in_cwd then
+    local cwd = vim.fn.getcwd()
+    full_cmd = string.format("cd '%s' && %s", cwd, cmd)
+  end
+
   -- Send command
-  local success, send_err = pane.send_command(pane_index, cmd)
+  local success, send_err = pane.send_command(pane_index, full_cmd)
   if not success then
     vim.notify("Failed to send command: " .. (send_err or "unknown error"), vim.log.levels.ERROR)
     return
   end
 
-  -- Start monitoring
+  -- Start monitoring (use original cmd for display)
   monitor.start_pane(pane_index, cmd, config)
 
-  -- Store as last panel command
+  -- Store as last panel command (original, not with cd)
   M.last_panel_command = cmd
 end
 

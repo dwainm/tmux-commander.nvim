@@ -14,6 +14,7 @@ M.config = {
     max_entries = 100,
   },
   target_session = "", -- Set to specific session name, or "" for current
+  run_in_cwd = true, -- Prepend 'cd <cwd> && ' to commands
   input_detection = {
     enabled = true,
     stability_timeout = 2000,

@@ -88,6 +88,7 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
     monitor_interval = 2000,  -- Check command status every 2 seconds
     idle_shells = { "zsh", "bash", "sh", "fish" },  -- What counts as idle
     target_session = "",  -- Target specific tmux session, or "" for current session
+    run_in_cwd = true,  -- Prepend 'cd <cwd> && ' to commands (run in Neovim's working directory)
 
     notify_on = {
       start = true,   -- "🚀 Command started in window 2"
