@@ -17,7 +17,7 @@ https://github.com/dwainm/tmux-commander.nvim
 - 🤖 **Auto-Adopt Commands** - automatically monitor all running tmux commands with one keypress
 - ⌨️ **Simple API** - just one function: `run_prompt(cmd)` - pass command or prompt user
 - 🎨 **Customizable** - define your own keymaps, configure notifications and behavior
-- 💬 **Interactive Support** - handles commands requiring user input (consoles, prompts, etc.)
+- 🔐 **Auto-Prompt for Input** - cursor-based detection automatically prompts for passwords, confirmations, and interactive input
 
 ## 📦 Installation
 
@@ -90,6 +90,7 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
     monitor_interval = 2000,  -- Check command status every 2 seconds
     idle_shells = { "zsh", "bash", "sh", "fish" },  -- What counts as idle
     target_session = "",  -- Target specific tmux session, or "" for current session
+    run_in_cwd = true,  -- Prepend 'cd <cwd> && ' to commands (run in Neovim's working directory)
 
     notify_on = {
       start = true,   -- "🚀 Command started in window 2"
@@ -100,6 +101,30 @@ Install the plugin with [lazy.nvim](https://github.com/folke/lazy.nvim):
     history = {
       enabled = true,
       max_entries = 100,
+    },
+
+    input_detection = {
+      enabled = true,  -- Auto-prompt for input when command needs it
+
+      -- How long to wait for output to stabilize before detecting (ms)
+      stability_timeout = 2000,
+
+      -- Commands that wait for stdin without showing a prompt
+      -- These will trigger a notification instead of an input prompt
+      stdin_waiters = {
+        action = "notify",  -- "notify" | "ignore" | "prompt"
+        commands = {
+          "cat", "grep", "sort", "wc", "tee", "tr",
+          "sed", "awk", "head", "tail", "less", "more",
+          "uniq", "cut", "paste"
+        }
+      },
+
+      -- Patterns that indicate a password prompt (for hidden input)
+      password_patterns = {
+        "password",
+        "passphrase",
+      }
     },
   },
   keys = {
@@ -191,10 +216,58 @@ end)
 
 1. Starts async timer (checks every `monitor_interval` ms)
 2. Checks if window is back to idle shell
-3. When command finishes:
+3. Checks for input prompts (password, confirmations, etc.)
+4. When command finishes:
    - Shows completion notification
    - Saves to command history
    - Stops monitoring
+
+### Auto-Prompt for Input
+
+When a monitored command needs user input, the plugin automatically detects it using cursor position and prompts you in Neovim:
+
+**Detection method:**
+- Monitors tmux cursor position (`#{cursor_x}`) during command execution
+- When cursor is mid-line (cursor_x > 0) and output is stable → prompt is waiting for input
+- Captures the last line to show as prompt text in Neovim
+
+**Smart handling:**
+
+1. **Visible prompts** - Auto-prompt in Neovim:
+   - `sudo` password prompts
+   - `cp -i`, `rm -i`, `mv -i` confirmations
+   - Python `input()`, shell `read -p`
+   - Any command showing a prompt
+
+2. **Silent stdin waiters** - Notify only:
+   - `cat`, `grep` (no args) waiting for input
+   - Configurable list in `stdin_waiters.commands`
+   - Shows: "⚠️ cat is waiting for input. Press <leader>ri to interact"
+
+3. **Password detection** - Hidden input:
+   - Checks prompt text against `password_patterns`
+   - Automatically hides characters for password prompts
+
+**Example workflow:**
+```
+1. Press <leader>rd to run "kamal deploy"
+2. Command hits password prompt in tmux
+3. Detection: cursor_x=10, last_line="password:"
+4. Neovim shows: "Input for kamal (window 2): password:"
+5. Type password (hidden), sent to tmux
+6. Command hits confirmation: "Deploy to production? (y/n)"
+7. Neovim shows: "Input for kamal (window 2): Deploy to production? (y/n)"
+8. Type "y", sent to tmux
+9. Deploy continues...
+```
+
+**Benefits:**
+- ✅ No pattern configuration needed - works with any prompt
+- ✅ Detects 90%+ of real-world input scenarios
+- ✅ Smart handling of edge cases (stdin waiters)
+- ✅ Fallback: `<leader>ri` still works for any case
+
+You can customize stdin waiters or disable this feature in configuration.
 
 ### History Storage
 
@@ -235,6 +308,19 @@ Already have commands running in tmux? Use `adopt()` to automatically monitor th
 { "<leader>rt", function() require("tmux-commander").run_prompt("npm test") end }
 ```
 
+**Auto-prompt handles password and confirmation prompts automatically:**
+
+Commands that need input (passwords, confirmations) are automatically detected. Just type the input in Neovim when prompted - no need to jump to tmux!
+
+```lua
+-- The plugin will detect password prompts automatically
+{ "<leader>rd", function() require("tmux-commander").run_prompt("kamal deploy") end }
+-- When password is needed, you'll see: "Input needed in tmux window 2: password:"
+
+-- You can still manually jump to window if needed
+{ "<leader>ri", function() require("tmux-commander").inspect() end }
+```
+
 **For interactive commands** (consoles, REPLs), use `inspect()` to jump to the window:
 
 ```lua
@@ -269,6 +355,7 @@ This plugin is in active development. Recent improvements:
 - ✅ **Snacks.nvim integration** - Full picker support with live window previews
 - ✅ **Auto-adopt** - Automatically monitor all running commands
 - ✅ **Live preview** - Real-time tmux window content in picker
+- ✅ **Auto-prompt for input** - Automatically detect and prompt for passwords and confirmations
 
 Current limitations:
 

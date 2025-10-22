@@ -14,6 +14,23 @@ M.config = {
     max_entries = 100,
   },
   target_session = "", -- Set to specific session name, or "" for current
+  run_in_cwd = true, -- Prepend 'cd <cwd> && ' to commands
+  input_detection = {
+    enabled = true,
+    stability_timeout = 2000,
+    stdin_waiters = {
+      action = "notify",
+      commands = {
+        "cat", "grep", "sort", "wc", "tee", "tr",
+        "sed", "awk", "head", "tail", "less", "more",
+        "uniq", "cut", "paste"
+      }
+    },
+    password_patterns = {
+      "password",
+      "passphrase",
+    }
+  },
 }
 
 -- Ensure plugin is initialized
