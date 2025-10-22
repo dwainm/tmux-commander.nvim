@@ -186,49 +186,45 @@ end
 function M.prompt_and_send(detection)
   local target_type = detection.is_window and "window" or "pane"
   local prompt_message = string.format(
-    "Input for %s (%s %s): %s",
+    "Input for %s (%s %s): %s ",
     detection.cmd,
     target_type,
     detection.target,
     detection.prompt_text
   )
 
-  -- Create input options
-  local input_opts = {
-    prompt = prompt_message,
-  }
-
-  -- Note: Password hiding depends on the input UI plugin
-  -- vim.ui.input doesn't natively support password mode
+  local input
   if detection.is_password then
-    input_opts.default = ""
+    -- Use inputsecret for password prompts (hides input)
+    input = vim.fn.inputsecret(prompt_message)
+  else
+    -- Use regular input for non-password prompts
+    input = vim.fn.input(prompt_message)
   end
 
-  vim.ui.input(input_opts, function(input)
-    if not input then
-      return
-    end
+  if not input or input == "" then
+    return
+  end
 
-    -- Escape single quotes in input
-    local escaped_input = input:gsub("'", "'\\''")
+  -- Escape single quotes in input
+  local escaped_input = input:gsub("'", "'\\''")
 
-    -- Send to tmux
-    local send_cmd
-    if detection.is_window then
-      send_cmd = string.format("tmux send-keys -t :%s '%s' Enter", detection.target, escaped_input)
-    else
-      send_cmd = string.format("tmux send-keys -t %s '%s' Enter", detection.target, escaped_input)
-    end
+  -- Send to tmux
+  local send_cmd
+  if detection.is_window then
+    send_cmd = string.format("tmux send-keys -t :%s '%s' Enter", detection.target, escaped_input)
+  else
+    send_cmd = string.format("tmux send-keys -t %s '%s' Enter", detection.target, escaped_input)
+  end
 
-    vim.fn.system(send_cmd)
+  vim.fn.system(send_cmd)
 
-    if vim.v.shell_error ~= 0 then
-      vim.notify(
-        string.format("Failed to send input to tmux %s %s", target_type, detection.target),
-        vim.log.levels.ERROR
-      )
-    end
-  end)
+  if vim.v.shell_error ~= 0 then
+    vim.notify(
+      string.format("Failed to send input to tmux %s %s", target_type, detection.target),
+      vim.log.levels.ERROR
+    )
+  end
 end
 
 return M
