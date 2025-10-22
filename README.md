@@ -1,6 +1,7 @@
 # 🚀 tmux-commander.nvim
 
-[![asciicast](https://asciinema.org/a/750704.svg)](https://asciinema.org/a/750704)
+![tmux-commander](https://github.com/user-attachments/assets/0e5f1b73-36f6-47e4-a725-744f5aba2fc4)
+
 
 **Neovim plugin for executing commands in tmux windows with smart window management and completion notifications.**
 
